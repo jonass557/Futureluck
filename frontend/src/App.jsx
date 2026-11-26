@@ -18,6 +18,7 @@ import { HelpPage, AboutPage } from './pages/InfoPages';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
 import AdminMarketsPage from './pages/admin/AdminMarketsPage';
 import AdminTransactionsPage from './pages/admin/AdminTransactionsPage';
+import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
 import { AdminUsersPage, AdminLogsPage } from './pages/admin/AdminUsersLogs';
 
 function PrivateRoute({ children }) {
@@ -187,6 +188,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminTransactionsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/payments"
+            element={
+              <AdminRoute>
+                <AdminPaymentsPage />
               </AdminRoute>
             }
           />

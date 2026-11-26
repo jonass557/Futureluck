@@ -10,11 +10,14 @@ import authRoutes from './routes/auth.js';
 import marketRoutes from './routes/markets.js';
 import walletRoutes from './routes/wallet.js';
 import adminRoutes from './routes/admin.js';
+import webhookRoutes from './routes/webhook.js';
 
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+const allowedOrigins = (
+  process.env.CLIENT_URL || 'https://futureluck.vercel.app,http://localhost:5173'
+)
   .split(',')
   .map((o) => o.trim());
 
@@ -29,6 +32,10 @@ app.use(
     credentials: true,
   })
 );
+
+// Mount webhook routes BEFORE express.json() so raw body is preserved for HMAC SHA-256
+app.use('/api/webhooks', webhookRoutes);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));

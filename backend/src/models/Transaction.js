@@ -19,17 +19,33 @@ const transactionSchema = new mongoose.Schema(
     },
     provider: {
       type: String,
-      enum: ['MTN_MOMO', 'ORANGE_MONEY', 'WALLET'],
+      enum: ['MTN_MOMO', 'ORANGE_MONEY', 'WAVE', 'MOOV', 'WALLET'],
       default: 'WALLET',
     },
     phone: {
       type: String,
       default: '',
     },
+    country: {
+      type: String,
+      default: '',
+    },
+    currency: {
+      type: String,
+      default: 'XOF',
+    },
     reference: {
       type: String,
       unique: true,
       required: true,
+    },
+    providerReference: {
+      type: String,
+      default: '',
+    },
+    paymentLink: {
+      type: String,
+      default: '',
     },
     status: {
       type: String,

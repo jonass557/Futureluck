@@ -5,6 +5,7 @@ import Transaction from '../models/Transaction.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
+import PaymentConfig from '../models/PaymentConfig.js';
 import { protect, requireAdmin } from '../middleware/auth.js';
 import { upload, uploadImage } from '../config/cloudinary.js';
 import { generateReference, recordAudit } from '../utils/audit.js';
@@ -655,6 +656,82 @@ router.get('/audit-logs', async (_req, res) => {
     res.json({ logs });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors du chargement des journaux.' });
+  }
+});
+
+// GET /api/admin/payment-config - Retrieve Ikeepay configuration (masked secret key)
+router.get('/payment-config', async (_req, res) => {
+  try {
+    const doc = await PaymentConfig.findOne({ provider: 'ikeepay' });
+    const rawSecret = doc?.secretKey || process.env.IKEEPAY_SECRET_KEY || '';
+    const maskedSecretKey = rawSecret
+      ? `${rawSecret.slice(0, 6)}••••••••${rawSecret.slice(-4)}`
+      : '';
+
+    res.json({
+      config: {
+        provider: 'ikeepay',
+        baseUrl: doc?.baseUrl || 'https://api.ikeepay.com',
+        publicKey: doc?.publicKey || '',
+        defaultCountry: doc?.defaultCountry || 'CI',
+        defaultCurrency: doc?.defaultCurrency || 'XOF',
+        enabled: doc ? doc.enabled : Boolean(rawSecret),
+        hasSecretKey: Boolean(rawSecret),
+        maskedSecretKey,
+        webhookPath: '/api/webhooks/ikeepay',
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du chargement de la configuration Ikeepay.' });
+  }
+});
+
+// PUT /api/admin/payment-config - Save/Update Ikeepay API keys from Admin Dashboard
+router.put('/payment-config', async (req, res) => {
+  try {
+    const { secretKey, publicKey, baseUrl, defaultCountry, defaultCurrency, enabled } = req.body;
+
+    let doc = await PaymentConfig.findOne({ provider: 'ikeepay' });
+    if (!doc) {
+      doc = new PaymentConfig({ provider: 'ikeepay' });
+    }
+
+    if (secretKey && secretKey.trim()) doc.secretKey = secretKey.trim();
+    if (publicKey !== undefined) doc.publicKey = publicKey.trim();
+    if (baseUrl) doc.baseUrl = baseUrl.trim().replace(/\/$/, '');
+    if (defaultCountry) doc.defaultCountry = defaultCountry.trim().toUpperCase();
+    if (defaultCurrency) doc.defaultCurrency = defaultCurrency.trim().toUpperCase();
+    if (enabled !== undefined) doc.enabled = Boolean(enabled);
+    doc.updatedBy = req.user._id;
+
+    await doc.save();
+
+    await recordAudit({
+      actor: req.user,
+      action: 'IKEEPAY_CONFIG_UPDATED',
+      targetType: 'PaymentConfig',
+      targetId: doc._id,
+      details: `Configuration Ikeepay mise à jour (Pays: ${doc.defaultCountry}, Devise: ${doc.defaultCurrency}, Actif: ${doc.enabled})`,
+      ip: req.ip,
+    });
+
+    const rawSecret = doc.secretKey || process.env.IKEEPAY_SECRET_KEY || '';
+    res.json({
+      message: 'Clés API Ikeepay enregistrées avec succès !',
+      config: {
+        provider: 'ikeepay',
+        baseUrl: doc.baseUrl,
+        publicKey: doc.publicKey,
+        defaultCountry: doc.defaultCountry,
+        defaultCurrency: doc.defaultCurrency,
+        enabled: doc.enabled,
+        hasSecretKey: Boolean(rawSecret),
+        maskedSecretKey: rawSecret ? `${rawSecret.slice(0, 6)}••••••••${rawSecret.slice(-4)}` : '',
+        webhookPath: '/api/webhooks/ikeepay',
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors de l’enregistrement des clés Ikeepay.' });
   }
 });
 

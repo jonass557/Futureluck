@@ -8,6 +8,7 @@ import {
   LogOut,
   ArrowLeft,
   ShieldCheck,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { FutureLuckLogo } from './FutureLuckLogo';
@@ -21,6 +22,7 @@ export function AdminLayout({ children, title }) {
     { to: '/admin', label: 'Statistiques', icon: LayoutDashboard },
     { to: '/admin/markets', label: 'Marchés & Gagnants', icon: Gavel },
     { to: '/admin/transactions', label: 'Dépôts & Retraits', icon: ArrowLeftRight },
+    { to: '/admin/payments', label: 'Paiements Ikeepay', icon: KeyRound },
     { to: '/admin/users', label: 'Utilisateurs', icon: Users },
     { to: '/admin/logs', label: 'Journaux', icon: ScrollText },
   ];
