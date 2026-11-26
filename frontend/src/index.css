@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --fl-blue-dark: #001B6B;
+    --fl-blue: #0033B3;
+    --fl-blue-bright: #0044E5;
+    --fl-gold: #FFD200;
+    --fl-gold-dark: #F59E0B;
+    --fl-bg: #F4F7FC;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--fl-bg);
+    color: #0f172a;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 1em);
+  }
+
+  input:focus-visible,
+  button:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: 3px solid #FFD200;
+    outline-offset: 2px;
+  }
+}
+
+.fl-gradient-blue {
+  background: linear-gradient(145deg, #0038C7 0%, #002799 55%, #001A6E 100%);
+}
+
+.fl-gradient-header {
+  background: linear-gradient(180deg, #002EA6 0%, #003BD1 100%);
+}
+
+.fl-gradient-gold {
+  background: linear-gradient(90deg, #FFE033 0%, #FFC800 50%, #F5B400 100%);
+}
+
+.fl-card-shadow {
+  box-shadow: 0 8px 24px -6px rgba(0, 39, 153, 0.14);
+}
+
+@keyframes fl-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-fl-marquee {
+  display: flex;
+  width: max-content;
+  animation: fl-marquee 28s linear infinite;
+}
+
+.animate-fl-marquee:hover {
+  animation-play-state: paused;
+}
