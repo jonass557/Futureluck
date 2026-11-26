@@ -60,19 +60,36 @@ export default function PublicHomePage() {
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
-        {/* Gold Winner Ticker */}
-        <div className="fl-gradient-gold text-[#001B6B] rounded-full px-4 py-2.5 flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Trophy className="w-5 h-5 text-amber-800 shrink-0" />
-            <p className="text-xs sm:text-sm font-extrabold truncate">
-              {winners[0]
-                ? `Félicitations à ${winners[0].name} — ${formatFCFA(winners[0].amount)} gagnés !`
-                : 'Bienvenue sur FutureLuck — Jouez • Gagnez • Encaissez !'}
-            </p>
+        {/* Gold Scrolling Winners Marquee */}
+        <div className="fl-gradient-gold text-[#001B6B] rounded-2xl p-3 shadow-md overflow-hidden">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wide">
+              <Trophy className="w-4 h-4 text-amber-800 shrink-0" />
+              Gagnants en direct
+            </span>
+            <Link to="/register" className="text-xs font-black underline shrink-0">
+              Tenter ma chance →
+            </Link>
           </div>
-          <Link to="/register" className="text-xs font-black underline shrink-0 ml-2">
-            Tenter ma chance →
-          </Link>
+          {winners.length > 0 ? (
+            <div className="overflow-hidden relative">
+              <div className="animate-fl-marquee gap-3">
+                {[...winners, ...winners].map((w, idx) => (
+                  <div
+                    key={`${w.id}-${idx}`}
+                    className="inline-flex items-center gap-2 bg-white/80 px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 shadow-xs"
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="font-extrabold text-[#001B6B]">{w.name}</span>
+                    <span className="text-slate-600">• {w.marketTitle}</span>
+                    <span className="font-black text-emerald-700">+{formatFCFA(w.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs font-extrabold">Bienvenue sur FutureLuck — Jouez • Gagnez • Encaissez !</p>
+          )}
         </div>
 
         {/* Hero Banner */}

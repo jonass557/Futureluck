@@ -56,23 +56,32 @@ export default function AdminOverviewPage() {
             })}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               to="/admin/markets"
               className="fl-gradient-blue text-white rounded-2xl p-6 shadow-lg hover:brightness-105 transition"
             >
               <h2 className="text-lg font-extrabold text-[#FFD200]">Gérer les marchés & gagnants →</h2>
               <p className="text-sm text-blue-100 mt-1">
-                Publier des produits, consulter les participants et désigner les gagnants.
+                Publier des produits, ajouter des participants et désigner les gagnants.
               </p>
             </Link>
             <Link
-              to="/admin/transactions"
+              to="/admin/payments"
+              className="fl-gradient-gold text-[#001B6B] rounded-2xl p-6 shadow-lg hover:brightness-95 transition"
+            >
+              <h2 className="text-lg font-extrabold">Paramètres & Clés API Ikeepay →</h2>
+              <p className="text-sm text-[#001B6B]/85 font-medium mt-1">
+                Insérer votre clé secrète Ikeepay et copier le lien Webhook.
+              </p>
+            </Link>
+            <Link
+              to="/admin/users"
               className="bg-white border-2 border-[#0033B3] text-[#001B6B] rounded-2xl p-6 shadow-sm hover:bg-[#EEF4FF] transition"
             >
-              <h2 className="text-lg font-extrabold">Valider dépôts & retraits →</h2>
+              <h2 className="text-lg font-extrabold">Créer & gérer les utilisateurs →</h2>
               <p className="text-sm text-slate-600 mt-1">
-                Approuver ou refuser les demandes MTN MoMo et Orange Money en attente.
+                Créer des comptes utilisateurs et les ajouter comme participants ou gagnants.
               </p>
             </Link>
           </div>

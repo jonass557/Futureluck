@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import Market from '../models/Market.js';
 import Participation from '../models/Participation.js';
 import Transaction from '../models/Transaction.js';
@@ -613,6 +614,8 @@ router.get('/users', async (_req, res) => {
         status: u.status,
         tier: u.tier,
         avatarUrl: u.avatarUrl,
+        walletBalance: u.walletBalance,
+        winningsBalance: u.winningsBalance,
         totalStaked: u.totalStaked,
         totalWon: u.totalWon,
         createdAt: u.createdAt,
@@ -620,6 +623,48 @@ router.get('/users', async (_req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors du chargement des utilisateurs.' });
+  }
+});
+
+// POST /api/admin/users - Admin creates a new user
+router.post('/users', async (req, res) => {
+  try {
+    const { fullName, phone, email, password, walletBalance } = req.body;
+    if (!fullName || !phone) {
+      return res.status(400).json({ message: 'Le nom complet et le numéro de téléphone sont requis.' });
+    }
+
+    const cleanPhone = phone.replace(/\s+/g, '');
+    const existing = await User.findOne({ phone: cleanPhone });
+    if (existing) {
+      return res.status(409).json({ message: 'Ce numéro de téléphone est déjà utilisé.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password && password.length >= 6 ? password : 'User@2026', 12);
+    const user = await User.create({
+      fullName: fullName.trim(),
+      phone: cleanPhone,
+      email: email ? email.trim().toLowerCase() : undefined,
+      passwordHash,
+      role: 'user',
+      walletBalance: Number(walletBalance) > 0 ? Number(walletBalance) : 0,
+    });
+
+    await recordAudit({
+      actor: req.user,
+      action: 'ADMIN_CREATED_USER',
+      targetType: 'User',
+      targetId: user._id,
+      details: `Admin a créé l’utilisateur ${user.fullName} (${user.phone})`,
+      ip: req.ip,
+    });
+
+    res.status(201).json({
+      message: 'Utilisateur créé avec succès !',
+      user: user.toSafeObject(),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Erreur lors de la création de l’utilisateur.' });
   }
 });
 
