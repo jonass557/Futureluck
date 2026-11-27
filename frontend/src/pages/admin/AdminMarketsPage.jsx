@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trophy, Users, Sparkles, CheckCircle2, X, UserPlus, Award } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Trophy, Users, Sparkles, CheckCircle2, X, UserPlus, Award, Eye, Pencil, Trash2 } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Card';
@@ -12,15 +13,17 @@ export default function AdminMarketsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
-  // Create form state
+  // Create / Edit form state
+  const [editingMarketId, setEditingMarketId] = useState(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('Investissez et tentez votre chance. Transformez votre participation en argent !');
-  const [marketDate, setMarketDate] = useState('2026-11-26');
-  const [startHour, setStartHour] = useState('09:00');
-  const [endHour, setEndHour] = useState('21:00');
+  const [marketDate, setMarketDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startHour, setStartHour] = useState('00:00');
+  const [endHour, setEndHour] = useState('23:59');
   const [winnersCount, setWinnersCount] = useState('2');
   const [productPrice, setProductPrice] = useState('5000');
   const [prizeAmount, setPrizeAmount] = useState('25000');
+  const [status, setStatus] = useState('open');
   const [imageFile, setImageFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -58,6 +61,49 @@ export default function AdminMarketsPage() {
     loadData();
   }, []);
 
+  const resetForm = () => {
+    setEditingMarketId(null);
+    setTitle('');
+    setDescription('Investissez et tentez votre chance. Transformez votre participation en argent !');
+    setMarketDate(new Date().toISOString().slice(0, 10));
+    setStartHour('00:00');
+    setEndHour('23:59');
+    setWinnersCount('2');
+    setProductPrice('5000');
+    setPrizeAmount('25000');
+    setStatus('open');
+    setImageFile(null);
+  };
+
+  const startEdit = (m) => {
+    setEditingMarketId(m._id);
+    setTitle(m.title);
+    setDescription(m.description || '');
+    setMarketDate(m.marketDate ? new Date(m.marketDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+    const sDate = new Date(m.startTime);
+    const eDate = new Date(m.endTime);
+    setStartHour(`${String(sDate.getUTCHours()).padStart(2, '0')}:${String(sDate.getUTCMinutes()).padStart(2, '0')}`);
+    setEndHour(`${String(eDate.getUTCHours()).padStart(2, '0')}:${String(eDate.getUTCMinutes()).padStart(2, '0')}`);
+    setWinnersCount(String(m.winnersCount || 2));
+    setProductPrice(String(m.productPrice || m.minStake || 5000));
+    setPrizeAmount(String(m.prizeAmount || 25000));
+    setStatus(m.status || 'open');
+    setImageFile(null);
+    setShowCreate(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (m) => {
+    if (!window.confirm(`Supprimer le produit "${m.title}" ?`)) return;
+    try {
+      const { data } = await api.delete(`/admin/markets/${m._id}`);
+      setFeedback(data.message);
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Erreur lors de la suppression.');
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -73,18 +119,25 @@ export default function AdminMarketsPage() {
       fd.append('productPrice', productPrice);
       fd.append('prizeAmount', prizeAmount);
       fd.append('minStake', productPrice);
+      fd.append('status', status);
       if (imageFile) fd.append('image', imageFile);
 
-      await api.post('/admin/markets', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      if (editingMarketId) {
+        await api.patch(`/admin/markets/${editingMarketId}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setFeedback('Produit mis à jour avec succès !');
+      } else {
+        await api.post('/admin/markets', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setFeedback('Marché publié avec succès !');
+      }
       setShowCreate(false);
-      setTitle('');
-      setImageFile(null);
-      setFeedback('Marché publié avec succès !');
+      resetForm();
       loadData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Erreur lors de la création.');
+      alert(err.response?.data?.message || 'Erreur lors de l’enregistrement.');
     } finally {
       setSubmitting(false);
     }
@@ -171,7 +224,17 @@ export default function AdminMarketsPage() {
           <p className="text-sm text-slate-600 font-medium">
             Créez des produits (prix du produit & prix à gagner), ajoutez des participants et désignez les gagnants.
           </p>
-          <Button variant="gold" onClick={() => setShowCreate((v) => !v)}>
+          <Button
+            variant="gold"
+            onClick={() => {
+              if (showCreate && editingMarketId) {
+                resetForm();
+              } else {
+                resetForm();
+                setShowCreate((v) => !v);
+              }
+            }}
+          >
             <Plus className="w-4 h-4" /> Créer un produit / marché
           </Button>
         </div>
@@ -188,7 +251,9 @@ export default function AdminMarketsPage() {
             onSubmit={handleCreate}
             className="bg-white rounded-3xl p-6 fl-card-shadow border border-blue-100 space-y-4"
           >
-            <h2 className="text-lg font-extrabold text-[#001B6B]">Nouveau Produit / Marché Virtuel</h2>
+            <h2 className="text-lg font-extrabold text-[#001B6B]">
+              {editingMarketId ? 'Modifier le Produit / Marché' : 'Nouveau Produit / Marché Virtuel'}
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Nom du produit *</label>
@@ -286,11 +351,17 @@ export default function AdminMarketsPage() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setShowCreate(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowCreate(false);
+                  resetForm();
+                }}
+              >
                 Annuler
               </Button>
               <Button type="submit" variant="primary" disabled={submitting}>
-                {submitting ? 'Publication...' : 'Publier le produit'}
+                {submitting ? 'Enregistrement...' : editingMarketId ? 'Enregistrer les modifications' : 'Publier le produit'}
               </Button>
             </div>
           </form>
@@ -331,10 +402,35 @@ export default function AdminMarketsPage() {
                   </div>
                 </div>
 
-                <Button variant="primary" size="sm" className="w-full" onClick={() => openParticipants(m)}>
-                  <Users className="w-4 h-4" />
-                  Gérer Participants & Ajouter Gagnants
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="primary" size="sm" className="flex-1" onClick={() => openParticipants(m)}>
+                    <Users className="w-4 h-4" />
+                    Participants & Gagnants
+                  </Button>
+                  <Link
+                    to={`/markets/${m._id}`}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+                    title="Voir le produit"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Voir
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(m)}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-[#EEF4FF] hover:bg-blue-100 text-[#0033B3] text-xs font-bold cursor-pointer"
+                    title="Modifier"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Modifier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(m)}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold cursor-pointer"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Supprimer
+                  </button>
+                </div>
               </div>
             ))}
           </div>

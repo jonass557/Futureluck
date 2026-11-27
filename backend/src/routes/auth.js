@@ -110,6 +110,9 @@ router.post('/login', async (req, res) => {
 
 // GET /api/auth/me
 router.get('/me', protect, async (req, res) => {
+  if (!req.user.walletId) {
+    await req.user.save();
+  }
   res.json({ user: req.user.toSafeObject() });
 });
 

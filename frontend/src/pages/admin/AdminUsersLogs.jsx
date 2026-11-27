@@ -212,6 +212,7 @@ export function AdminUsersPage() {
               <thead className="bg-[#0033B3] text-white text-xs uppercase">
                 <tr>
                   <th className="px-4 py-3">Utilisateur</th>
+                  <th className="px-4 py-3">ID Portefeuille</th>
                   <th className="px-4 py-3">Solde / Gains</th>
                   <th className="px-4 py-3">Statut</th>
                   <th className="px-4 py-3">Ajouter à un produit</th>
@@ -224,6 +225,16 @@ export function AdminUsersPage() {
                     <td className="px-4 py-3">
                       <p className="font-bold text-slate-900">{u.fullName}</p>
                       <p className="text-xs text-slate-500">{u.phone}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(u.walletId || '')}
+                        title="Cliquer pour copier l'ID"
+                        className="font-mono text-xs font-extrabold bg-[#EEF4FF] text-[#0033B3] px-2.5 py-1 rounded-lg hover:bg-blue-100 cursor-pointer"
+                      >
+                        {u.walletId || '—'}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-xs">
                       <p className="font-semibold text-slate-700">Misé : {formatFCFA(u.totalStaked)}</p>

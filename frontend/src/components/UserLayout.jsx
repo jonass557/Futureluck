@@ -22,7 +22,7 @@ import { FutureLuckLogo } from './FutureLuckLogo';
 import { formatFCFA } from '@/lib/utils';
 import api from '@/lib/api';
 
-export function UserLayout({ children, title, showBack = false }) {
+export function UserLayout({ children, title, showBack = true }) {
   const { user, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -65,24 +65,24 @@ export function UserLayout({ children, title, showBack = false }) {
       {/* Top Royal Blue Header */}
       <header className="fl-gradient-header text-white sticky top-0 z-30 shadow-md">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {showBack ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="p-2 -ml-2 rounded-full hover:bg-white/15 transition cursor-pointer"
+              aria-label="Ouvrir le menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            {showBack && (
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="p-2 -ml-2 rounded-full hover:bg-white/15 transition cursor-pointer"
+                className="p-2 rounded-full hover:bg-white/15 transition cursor-pointer flex items-center gap-1 text-xs font-bold"
                 aria-label="Retour"
               >
-                <span className="text-xl font-bold leading-none">←</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(true)}
-                className="p-2 -ml-2 rounded-full hover:bg-white/15 transition cursor-pointer"
-                aria-label="Ouvrir le menu"
-              >
-                <Menu className="w-6 h-6" />
+                <span className="text-lg font-bold leading-none">←</span>
+                <span className="hidden sm:inline">Retour</span>
               </button>
             )}
           </div>

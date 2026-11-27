@@ -41,7 +41,14 @@ export default function WalletPage() {
       <div className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="fl-gradient-blue text-white rounded-3xl p-5 shadow-xl">
-            <p className="text-xs text-blue-100 font-semibold">Portefeuille LuckyGamble</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-blue-100 font-semibold">Portefeuille LuckyGamble</p>
+              {user?.walletId && (
+                <span className="bg-white/15 text-[#FFD200] text-[11px] font-mono font-extrabold px-2.5 py-1 rounded-full">
+                  ID: {user.walletId}
+                </span>
+              )}
+            </div>
             <p className="text-3xl font-black text-[#FFD200] mt-1">{formatFCFA(user?.walletBalance)}</p>
             <Link
               to="/wallet/recharge"

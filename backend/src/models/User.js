@@ -43,6 +43,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    walletId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     walletBalance: {
       type: Number,
       default: 0,
@@ -62,6 +67,14 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.pre('save', function (next) {
+  if (!this.walletId) {
+    const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.walletId = this.role === 'admin' ? `FLW-ADM-${rand.slice(0, 4)}` : `FLW-${rand}`;
+  }
+  next();
+});
+
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
@@ -76,6 +89,7 @@ userSchema.methods.toSafeObject = function () {
     status: this.status,
     tier: this.tier,
     avatarUrl: this.avatarUrl,
+    walletId: this.walletId || '',
     walletBalance: this.walletBalance,
     winningsBalance: this.winningsBalance,
     totalDeposited: this.totalDeposited,

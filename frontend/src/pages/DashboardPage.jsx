@@ -105,7 +105,14 @@ export default function DashboardPage() {
                 <Wallet className="w-9 h-9 text-[#FFD200]" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-blue-100 font-medium">Mon portefeuille LuckyGamble</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs sm:text-sm text-blue-100 font-medium">Mon portefeuille LuckyGamble</p>
+                  {user?.walletId && (
+                    <span className="bg-white/15 text-[#FFD200] text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-full">
+                      {user.walletId}
+                    </span>
+                  )}
+                </div>
                 <p className="text-2xl sm:text-3xl font-black text-[#FFD200] tracking-tight mt-0.5">
                   {formatFCFA(user?.walletBalance)}
                 </p>

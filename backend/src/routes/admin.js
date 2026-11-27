@@ -10,6 +10,7 @@ import PaymentConfig from '../models/PaymentConfig.js';
 import { protect, requireAdmin } from '../middleware/auth.js';
 import { upload, uploadImage } from '../config/cloudinary.js';
 import { generateReference, recordAudit } from '../utils/audit.js';
+import { ikeepayPayout } from '../services/ikeepay.js';
 
 const router = express.Router();
 
@@ -172,6 +173,27 @@ router.patch('/markets/:id', upload.single('image'), async (req, res) => {
   }
 });
 
+// DELETE /api/admin/markets/:id - Delete a published market/product
+router.delete('/markets/:id', async (req, res) => {
+  try {
+    const market = await Market.findByIdAndDelete(req.params.id);
+    if (!market) return res.status(404).json({ message: 'Marché introuvable.' });
+
+    await recordAudit({
+      actor: req.user,
+      action: 'MARKET_DELETED',
+      targetType: 'Market',
+      targetId: market._id,
+      details: `Marché supprimé: "${market.title}"`,
+      ip: req.ip,
+    });
+
+    res.json({ message: 'Produit/marché supprimé avec succès.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors de la suppression du marché.' });
+  }
+});
+
 // GET /api/admin/markets/:id/participants
 router.get('/markets/:id/participants', async (req, res) => {
   try {
@@ -236,6 +258,11 @@ router.post('/markets/:id/participants', async (req, res) => {
     await Market.findByIdAndUpdate(market._id, {
       $inc: { totalPool: amount, participantsCount: 1 },
     });
+
+    await User.findOneAndUpdate(
+      { role: 'admin' },
+      { $inc: { walletBalance: amount } }
+    );
 
     await User.findByIdAndUpdate(targetUser._id, {
       $inc: { totalStaked: amount },
@@ -605,6 +632,11 @@ router.patch('/transactions/:id/reject', async (req, res) => {
 router.get('/users', async (_req, res) => {
   try {
     const users = await User.find({ role: 'user' }).sort({ createdAt: -1 });
+    for (const u of users) {
+      if (!u.walletId) {
+        await u.save();
+      }
+    }
     res.json({
       users: users.map((u) => ({
         id: u._id,
@@ -614,6 +646,7 @@ router.get('/users', async (_req, res) => {
         status: u.status,
         tier: u.tier,
         avatarUrl: u.avatarUrl,
+        walletId: u.walletId,
         walletBalance: u.walletBalance,
         winningsBalance: u.winningsBalance,
         totalStaked: u.totalStaked,
@@ -777,6 +810,228 @@ router.put('/payment-config', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors de l’enregistrement des clés Ikeepay.' });
+  }
+});
+
+// GET /api/admin/wallet - Admin wallet balance, ID, total collected & transactions
+router.get('/wallet', async (req, res) => {
+  try {
+    if (!req.user.walletId) {
+      await req.user.save();
+    }
+    const poolAgg = await Market.aggregate([{ $group: { _id: null, total: { $sum: '$totalPool' } } }]);
+    const transactions = await Transaction.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({
+      wallet: {
+        walletId: req.user.walletId,
+        walletBalance: req.user.walletBalance,
+        totalCollectedFromMarkets: poolAgg[0]?.total || 0,
+      },
+      transactions,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du chargement du portefeuille administrateur.' });
+  }
+});
+
+// POST /api/admin/wallet/deposit - Deposit into Admin wallet
+router.post('/wallet/deposit', async (req, res) => {
+  try {
+    const amount = Number(req.body.amount);
+    const { provider = 'WALLET', note = '' } = req.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: 'Montant invalide.' });
+    }
+
+    const updatedAdmin = await User.findByIdAndUpdate(
+      req.user._id,
+      { $inc: { walletBalance: amount, totalDeposited: amount } },
+      { new: true }
+    );
+
+    const tx = await Transaction.create({
+      user: req.user._id,
+      type: 'deposit',
+      amount,
+      provider,
+      phone: req.user.phone,
+      reference: generateReference('ADM-DEP'),
+      status: 'approved',
+      note: note || 'Dépôt sur le portefeuille administrateur',
+      processedBy: req.user._id,
+      processedAt: new Date(),
+    });
+
+    await recordAudit({
+      actor: req.user,
+      action: 'ADMIN_WALLET_DEPOSIT',
+      targetType: 'Transaction',
+      targetId: tx._id,
+      amount,
+      details: `Dépôt de ${amount} FCFA sur le portefeuille administrateur`,
+      ip: req.ip,
+    });
+
+    res.status(201).json({
+      message: `Dépôt de ${amount.toLocaleString('fr-FR')} FCFA effectué sur le portefeuille admin.`,
+      walletBalance: updatedAdmin.walletBalance,
+      transaction: tx,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du dépôt admin.' });
+  }
+});
+
+// POST /api/admin/wallet/withdraw - Withdraw from Admin wallet
+router.post('/wallet/withdraw', async (req, res) => {
+  try {
+    const amount = Number(req.body.amount);
+    const { provider = 'MTN_MOMO', phone, country = 'CI', currency = 'XOF' } = req.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: 'Montant invalide.' });
+    }
+
+    const updatedAdmin = await User.findOneAndUpdate(
+      { _id: req.user._id, walletBalance: { $gte: amount } },
+      { $inc: { walletBalance: -amount, totalWithdrawn: amount } },
+      { new: true }
+    );
+
+    if (!updatedAdmin) {
+      return res.status(400).json({ message: 'Solde du portefeuille administrateur insuffisant.' });
+    }
+
+    const ref = generateReference('ADM-WDR');
+    if (['MTN_MOMO', 'ORANGE_MONEY', 'WAVE', 'MOOV'].includes(provider) && phone) {
+      try {
+        await ikeepayPayout({
+          amount,
+          currency,
+          country,
+          phoneNumber: phone,
+          operator: provider,
+          external_reference: ref,
+        });
+      } catch (ikpErr) {
+        await User.findByIdAndUpdate(req.user._id, {
+          $inc: { walletBalance: amount, totalWithdrawn: -amount },
+        });
+        return res.status(400).json({ message: ikpErr.message || 'Échec du retrait Ikeepay.' });
+      }
+    }
+
+    const tx = await Transaction.create({
+      user: req.user._id,
+      type: 'withdrawal',
+      amount,
+      provider,
+      phone: phone || req.user.phone,
+      reference: ref,
+      status: 'approved',
+      note: `Retrait depuis le portefeuille administrateur (${provider})`,
+      processedBy: req.user._id,
+      processedAt: new Date(),
+    });
+
+    await recordAudit({
+      actor: req.user,
+      action: 'ADMIN_WALLET_WITHDRAW',
+      targetType: 'Transaction',
+      targetId: tx._id,
+      amount,
+      details: `Retrait de ${amount} FCFA depuis le portefeuille administrateur`,
+      ip: req.ip,
+    });
+
+    res.status(201).json({
+      message: `Retrait de ${amount.toLocaleString('fr-FR')} FCFA effectué avec succès.`,
+      walletBalance: updatedAdmin.walletBalance,
+      transaction: tx,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du retrait admin.' });
+  }
+});
+
+// POST /api/admin/wallet/transfer - Transfer funds to a winner/user using their walletId
+router.post('/wallet/transfer', async (req, res) => {
+  try {
+    const amount = Number(req.body.amount);
+    const { recipientWalletId, note = '' } = req.body;
+    if (!recipientWalletId || !amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: 'Identifiant du portefeuille et montant valide requis.' });
+    }
+
+    const recipient = await User.findOne({ walletId: recipientWalletId.trim().toUpperCase(), role: 'user' });
+    if (!recipient) {
+      return res.status(404).json({ message: `Aucun utilisateur trouvé avec l’identifiant "${recipientWalletId}".` });
+    }
+
+    const updatedAdmin = await User.findOneAndUpdate(
+      { _id: req.user._id, walletBalance: { $gte: amount } },
+      { $inc: { walletBalance: -amount } },
+      { new: true }
+    );
+
+    if (!updatedAdmin) {
+      return res.status(400).json({ message: 'Solde du portefeuille administrateur insuffisant pour ce transfert.' });
+    }
+
+    await User.findByIdAndUpdate(recipient._id, {
+      $inc: { winningsBalance: amount, totalWon: amount },
+    });
+
+    await Transaction.create({
+      user: recipient._id,
+      type: 'winning',
+      amount,
+      provider: 'WALLET',
+      reference: generateReference('TRF-WIN'),
+      status: 'completed',
+      note: note || `Transfert de gain par l’administration vers ${recipient.walletId}`,
+      processedBy: req.user._id,
+      processedAt: new Date(),
+    });
+
+    await Transaction.create({
+      user: req.user._id,
+      type: 'withdrawal',
+      amount,
+      provider: 'WALLET',
+      reference: generateReference('ADM-TRF'),
+      status: 'completed',
+      note: `Transfert vers ${recipient.fullName} (${recipient.walletId})`,
+      processedBy: req.user._id,
+      processedAt: new Date(),
+    });
+
+    await Notification.create({
+      user: recipient._id,
+      title: 'Vous avez reçu un transfert de gain !',
+      message: `L’administration vous a transféré ${amount.toLocaleString('fr-FR')} FCFA sur votre portefeuille (${recipient.walletId}). Vous pouvez retirer vos gains !`,
+      type: 'win',
+      link: '/wallet/withdraw',
+    });
+
+    await recordAudit({
+      actor: req.user,
+      action: 'ADMIN_WALLET_TRANSFER',
+      targetType: 'User',
+      targetId: recipient._id,
+      amount,
+      details: `Transfert de ${amount} FCFA vers ${recipient.fullName} (${recipient.walletId})`,
+      ip: req.ip,
+    });
+
+    res.status(201).json({
+      message: `${amount.toLocaleString('fr-FR')} FCFA transférés à ${recipient.fullName} (${recipient.walletId}) !`,
+      walletBalance: updatedAdmin.walletBalance,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du transfert de fonds.' });
   }
 });
 

@@ -16,6 +16,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import { HelpPage, AboutPage } from './pages/InfoPages';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminWalletPage from './pages/admin/AdminWalletPage';
 import AdminMarketsPage from './pages/admin/AdminMarketsPage';
 import AdminTransactionsPage from './pages/admin/AdminTransactionsPage';
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
@@ -172,6 +173,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminOverviewPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/wallet"
+            element={
+              <AdminRoute>
+                <AdminWalletPage />
               </AdminRoute>
             }
           />

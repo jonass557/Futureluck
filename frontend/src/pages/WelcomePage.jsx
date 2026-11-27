@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Gavel } from 'lucide-react';
+import { Gavel, ArrowLeft } from 'lucide-react';
 import { FutureLuckLogo } from '@/components/FutureLuckLogo';
 
 export default function WelcomePage() {
   return (
     <div className="min-h-screen fl-gradient-blue text-white flex flex-col items-center justify-between px-6 py-12 relative overflow-hidden">
+      <Link
+        to="/"
+        className="self-start inline-flex items-center gap-1.5 text-blue-100 hover:text-white text-sm font-bold z-10"
+      >
+        <ArrowLeft className="w-4 h-4" /> Retour à l'accueil
+      </Link>
       {/* Decorative golden arcs */}
       <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full border-4 border-[#FFD200]/30 pointer-events-none" />
       <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full border-2 border-white/10 pointer-events-none" />

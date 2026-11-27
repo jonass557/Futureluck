@@ -175,6 +175,12 @@ router.post('/:id/participate', protect, async (req, res) => {
       $inc: { totalPool: amount, participantsCount: 1 },
     });
 
+    // Credit Admin wallet with participant stake
+    await User.findOneAndUpdate(
+      { role: 'admin' },
+      { $inc: { walletBalance: amount } }
+    );
+
     await Transaction.create({
       user: updatedUser._id,
       type: 'participation',
