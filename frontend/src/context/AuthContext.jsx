@@ -40,8 +40,7 @@ export function AuthProvider({ children }) {
     const { data } = await api.post('/auth/register', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    localStorage.setItem('futureluck_token', data.token);
-    setUser(data.user);
+    // Do not auto-login; user must sign in on /login after registration
     return data.user;
   };
 

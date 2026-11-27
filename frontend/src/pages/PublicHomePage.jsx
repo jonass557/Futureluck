@@ -96,7 +96,7 @@ export default function PublicHomePage() {
         <section className="fl-gradient-blue text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3 text-center md:text-left max-w-xl">
             <span className="inline-flex items-center gap-1.5 bg-white/15 text-[#FFD200] text-xs font-extrabold px-3 py-1 rounded-full">
-              <Sparkles className="w-3.5 h-3.5" /> Marchés virtuels à récompenses financières
+              <Sparkles className="w-3.5 h-3.5" /> FutureLuck • Jouez • Gagnez • Encaissez
             </span>
             <h1 className="text-2xl sm:text-4xl font-black leading-tight">
               Participez aux marchés ouverts et <span className="text-[#FFD200]">remportez des gains</span>

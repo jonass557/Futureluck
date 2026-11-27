@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Info, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Info, CheckCircle2, UserCheck } from 'lucide-react';
 import { UserLayout } from '@/components/UserLayout';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { formatFCFA } from '@/lib/utils';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 
 const COUNTRIES = [
   { code: 'CI', label: 'Côte d’Ivoire (CI)', currency: 'XOF' },
@@ -22,9 +23,22 @@ export default function WithdrawPage() {
   const [country, setCountry] = useState('CI');
   const [currency, setCurrency] = useState('XOF');
   const [amount, setAmount] = useState('25000');
-  const [phone, setPhone] = useState(user?.phone || '');
+  const [phone, setPhone] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
+
+  // Auto-fill phone & associated account name when operator changes
+  useEffect(() => {
+    const saved = user?.withdrawalAccounts?.[provider];
+    if (saved && saved.phone) {
+      setPhone(saved.phone);
+      setAccountName(saved.accountName || user?.fullName || '');
+    } else {
+      setPhone(user?.phone || '');
+      setAccountName(user?.fullName || '');
+    }
+  }, [provider, user]);
 
   const handleCountryChange = (code) => {
     setCountry(code);
@@ -43,13 +57,14 @@ export default function WithdrawPage() {
         currency,
         amount: Number(amount),
         phone,
+        accountName,
       });
       if (data.user) setUser(data.user);
       setFeedback({ type: 'success', text: data.message });
     } catch (err) {
       setFeedback({
         type: 'error',
-        text: err.response?.data?.message || 'Erreur lors de la demande de retrait.',
+        text: getApiErrorMessage(err, 'Erreur lors de la demande de retrait.'),
       });
     } finally {
       setSubmitting(false);
@@ -64,9 +79,14 @@ export default function WithdrawPage() {
           <span className="text-xl font-black text-[#FFD200]">{formatFCFA(user?.winningsBalance)}</span>
         </div>
 
-        <p className="text-center font-bold text-slate-800 text-base">
-          Retirez vos gains vers Mobile Money
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-bold text-slate-800 text-sm sm:text-base">
+            Retirez vos gains vers Mobile Money
+          </p>
+          <Link to="/profile" className="text-xs font-bold text-[#0033B3] hover:underline shrink-0">
+            Configurer mes numéros →
+          </Link>
+        </div>
 
         {/* Mobile Money Operator Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -129,6 +149,17 @@ export default function WithdrawPage() {
             </div>
             <span className="text-[11px] font-extrabold text-slate-900 text-center">Moov Money</span>
           </button>
+        </div>
+
+        {/* Auto-populated Saved Account Display */}
+        <div className="bg-[#EEF4FF] border border-blue-200 rounded-2xl p-3.5 flex items-center gap-3">
+          <UserCheck className="w-5 h-5 text-[#0033B3] shrink-0" />
+          <div className="text-xs">
+            <p className="font-bold text-[#001B6B]">Compte sélectionné ({provider}) :</p>
+            <p className="text-slate-700 font-semibold">
+              {phone || 'Aucun numéro'} — <strong>{accountName || 'Nom non défini'}</strong>
+            </p>
+          </div>
         </div>
 
         {feedback.text && (
@@ -196,19 +227,34 @@ export default function WithdrawPage() {
             />
           </div>
 
-          <div>
-            <label htmlFor="withdraw-phone" className="block text-sm font-bold text-slate-800 mb-1.5">
-              Numéro de réception (avec indicatif)
-            </label>
-            <input
-              id="withdraw-phone"
-              type="tel"
-              autoComplete="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300 font-semibold text-slate-900"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="withdraw-phone" className="block text-sm font-bold text-slate-800 mb-1.5">
+                Numéro de réception
+              </label>
+              <input
+                id="withdraw-phone"
+                type="tel"
+                autoComplete="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300 font-semibold text-slate-900"
+              />
+            </div>
+            <div>
+              <label htmlFor="withdraw-accname" className="block text-sm font-bold text-slate-800 mb-1.5">
+                Nom associé au numéro
+              </label>
+              <input
+                id="withdraw-accname"
+                type="text"
+                required
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300 font-semibold text-slate-900"
+              />
+            </div>
           </div>
 
           <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>

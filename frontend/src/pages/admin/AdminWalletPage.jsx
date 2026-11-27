@@ -3,6 +3,7 @@ import { Wallet, Send, Plus, ArrowDownToLine, CheckCircle2, Copy } from 'lucide-
 import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Card';
+import { Pagination } from '@/components/ui/Pagination';
 import { formatFCFA, formatShortDateFR } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -14,6 +15,8 @@ export default function AdminWalletPage() {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState('');
   const [copied, setCopied] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // Transfer form
   const [recipientWalletId, setRecipientWalletId] = useState('');
@@ -327,7 +330,7 @@ export default function AdminWalletPage() {
             <p className="text-sm text-slate-500 text-center py-4">Aucune opération pour le moment.</p>
           ) : (
             <div className="divide-y divide-slate-100">
-              {transactions.map((tx) => (
+              {transactions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((tx) => (
                 <div key={tx._id} className="py-3 flex items-center justify-between gap-3 text-sm">
                   <div>
                     <p className="font-bold text-slate-900">{tx.note || tx.type}</p>
@@ -346,6 +349,11 @@ export default function AdminWalletPage() {
               ))}
             </div>
           )}
+          <Pagination
+            page={page}
+            totalPages={Math.max(1, Math.ceil(transactions.length / PAGE_SIZE))}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </AdminLayout>

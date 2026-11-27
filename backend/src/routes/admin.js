@@ -1035,4 +1035,49 @@ router.post('/wallet/transfer', async (req, res) => {
   }
 });
 
+// GET /api/admin/history - Filter participants and winners by product & date period (with pagination)
+router.get('/history', async (req, res) => {
+  try {
+    const { type = 'participants', marketId = 'all', startDate, endDate, page = 1, limit = 15 } = req.query;
+    const filter = {};
+    if (type === 'winners') {
+      filter.status = 'won';
+    }
+    if (marketId && marketId !== 'all') {
+      filter.market = marketId;
+    }
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+    }
+
+    const p = Math.max(1, Number(page) || 1);
+    const l = Math.min(100, Math.max(1, Number(limit) || 15));
+
+    const [items, total] = await Promise.all([
+      Participation.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((p - 1) * l)
+        .limit(l)
+        .populate('user', 'fullName phone walletId')
+        .populate('market', 'title productPrice prizeAmount'),
+      Participation.countDocuments(filter),
+    ]);
+
+    res.json({
+      items,
+      total,
+      page: p,
+      totalPages: Math.max(1, Math.ceil(total / l)),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du chargement de l’historique.' });
+  }
+});
+
 export default router;

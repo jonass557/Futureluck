@@ -14,7 +14,7 @@ export default function MarketDetailsPage() {
   const { user, setUser } = useAuth();
   const [market, setMarket] = useState(null);
   const [winners, setWinners] = useState([]);
-  const [stakeAmount, setStakeAmount] = useState('5000');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
@@ -25,9 +25,6 @@ export default function MarketDetailsPage() {
       .then((res) => {
         setMarket(res.data.market);
         setWinners(res.data.winners || []);
-        if (res.data.market?.minStake) {
-          setStakeAmount(String(Math.max(res.data.market.minStake, 5000)));
-        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -49,16 +46,23 @@ export default function MarketDetailsPage() {
     );
   }
 
-  const numericStake = Math.max(0, Number(stakeAmount) || 0);
-  const potentialGain = numericStake + Math.round((numericStake * market.rewardRate) / 100);
+  const fixedPrice = market.productPrice || market.minStake || 5000;
+  const potentialGain = market.prizeAmount || fixedPrice + Math.round((fixedPrice * market.rewardRate) / 100);
 
   const handleParticipate = async (e) => {
     e.preventDefault();
     setFeedback({ type: '', text: '' });
+    if (!acceptedTerms) {
+      setFeedback({
+        type: 'error',
+        text: 'Veuillez lire et accepter les termes et conditions avant de participer.',
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       const { data } = await api.post(`/markets/${market._id}/participate`, {
-        amount: numericStake,
+        amount: fixedPrice,
       });
       if (data.user) setUser(data.user);
       setFeedback({ type: 'success', text: data.message });
@@ -178,42 +182,41 @@ export default function MarketDetailsPage() {
               </Link>
             </div>
 
-            <div>
-              <label htmlFor="stakeAmount" className="block text-sm font-bold text-slate-700 mb-1.5">
-                Montant de votre participation (FCFA)
-              </label>
-              <input
-                id="stakeAmount"
-                type="number"
-                min={market.minStake}
-                max={market.maxStake}
-                step={500}
-                required
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
-                className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300 font-extrabold text-lg text-[#001B6B]"
-              />
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {[1000, 2500, 5000, 10000, 25000].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setStakeAmount(String(preset))}
-                    className="px-3 py-1 rounded-full text-xs font-bold bg-[#EEF4FF] text-[#0033B3] hover:bg-blue-100 cursor-pointer"
-                  >
-                    {preset.toLocaleString('fr-FR')} F
-                  </button>
-                ))}
+            <div className="bg-[#EEF4FF] rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-700">Montant de participation (Prix du produit) :</span>
+                <span className="text-lg font-black text-[#001B6B]">{formatFCFA(fixedPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-blue-200/70 pt-2">
+                <span className="text-sm font-bold text-slate-700">Prix à gagner :</span>
+                <span className="text-xl font-black text-emerald-700">{formatFCFA(potentialGain)}</span>
               </div>
             </div>
 
-            <div className="bg-[#EEF4FF] rounded-2xl p-4 flex items-center justify-between">
-              <span className="text-sm font-bold text-slate-700">Gain potentiel si gagnant :</span>
-              <span className="text-xl font-black text-[#0033B3]">{formatFCFA(potentialGain)}</span>
+            {/* Termes et conditions obligatoires */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5 text-xs text-slate-700">
+              <p className="font-extrabold text-sm text-[#001B6B]">Termes et conditions de participation</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Le montant de participation ({formatFCFA(fixedPrice)}) est débité immédiatement de votre portefeuille LuckyGamble.</li>
+                <li>Les produits présentés sont des supports de participation et ne donnent pas lieu à une livraison physique.</li>
+                <li>Les gagnants ({market.winnersCount} personnes) sont désignés après clôture et reçoivent {formatFCFA(potentialGain)} dans leurs gains retirables.</li>
+                <li>La participation validée est ferme et définitive.</li>
+              </ul>
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 accent-[#0033B3] shrink-0"
+                />
+                <span className="font-bold text-slate-900">
+                  J’ai lu et j’accepte les termes et conditions de participation.
+                </span>
+              </label>
             </div>
 
             <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
-              {submitting ? 'Traitement en cours...' : 'Participer maintenant'}
+              {submitting ? 'Traitement en cours...' : `Participer maintenant (${formatFCFA(fixedPrice)})`}
             </Button>
           </form>
         ) : market.resultsPublished ? (

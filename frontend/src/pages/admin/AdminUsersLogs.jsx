@@ -3,6 +3,7 @@ import { UserPlus, Trophy, Gavel, CheckCircle2, X } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Badge } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Pagination } from '@/components/ui/Pagination';
 import { formatFCFA, formatShortDateFR } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -12,6 +13,8 @@ export function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Create user form
   const [fullName, setFullName] = useState('');
@@ -220,7 +223,7 @@ export function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {users.map((u) => (
+                {users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <p className="font-bold text-slate-900">{u.fullName}</p>
@@ -299,6 +302,13 @@ export function AdminUsersPage() {
               </tbody>
             </table>
           )}
+          <div className="px-4 pb-4">
+            <Pagination
+              page={page}
+              totalPages={Math.max(1, Math.ceil(users.length / PAGE_SIZE))}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
 
         {/* Assign User to Market Modal */}
@@ -391,6 +401,8 @@ export function AdminUsersPage() {
 export function AdminLogsPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   useEffect(() => {
     api
@@ -416,7 +428,7 @@ export function AdminLogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {logs.map((log) => (
+              {logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((log) => (
                 <tr key={log._id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{formatShortDateFR(log.createdAt)}</td>
                   <td className="px-4 py-3 font-bold text-slate-900">
@@ -429,6 +441,13 @@ export function AdminLogsPage() {
             </tbody>
           </table>
         )}
+        <div className="px-4 pb-4">
+          <Pagination
+            page={page}
+            totalPages={Math.max(1, Math.ceil(logs.length / PAGE_SIZE))}
+            onPageChange={setPage}
+          />
+        </div>
       </div>
     </AdminLayout>
   );

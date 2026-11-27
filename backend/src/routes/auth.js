@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { upload, uploadImage } from '../config/cloudinary.js';
 import { recordAudit } from '../utils/audit.js';
+import { sendOtpEmail } from '../services/mailer.js';
 
 const router = express.Router();
 
@@ -174,6 +175,115 @@ router.patch('/password', protect, async (req, res) => {
     res.json({ message: 'Mot de passe modifié avec succès.' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors du changement de mot de passe.' });
+  }
+});
+
+// PATCH /api/auth/withdrawal-accounts - Save Mobile Money withdrawal numbers & names
+router.patch('/withdrawal-accounts', protect, async (req, res) => {
+  try {
+    const { withdrawalAccounts } = req.body;
+    if (!withdrawalAccounts || typeof withdrawalAccounts !== 'object') {
+      return res.status(400).json({ message: 'Données de comptes invalides.' });
+    }
+
+    const providers = ['MTN_MOMO', 'ORANGE_MONEY', 'WAVE', 'MOOV'];
+    const current = req.user.withdrawalAccounts || {};
+    for (const p of providers) {
+      if (withdrawalAccounts[p]) {
+        current[p] = {
+          phone: String(withdrawalAccounts[p].phone || '').trim(),
+          accountName: String(withdrawalAccounts[p].accountName || '').trim(),
+        };
+      }
+    }
+
+    req.user.withdrawalAccounts = current;
+    req.user.markModified('withdrawalAccounts');
+    await req.user.save();
+
+    await recordAudit({
+      actor: req.user,
+      action: 'WITHDRAWAL_ACCOUNTS_UPDATED',
+      targetType: 'User',
+      targetId: req.user._id,
+      details: 'Mise à jour des numéros Mobile Money de retrait',
+      ip: req.ip,
+    });
+
+    res.json({
+      message: 'Numéros Mobile Money de retrait enregistrés !',
+      user: req.user.toSafeObject(),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors de l’enregistrement des comptes.' });
+  }
+});
+
+// POST /api/auth/forgot-password - Send 6-digit OTP to user's email
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: 'Veuillez saisir votre adresse email.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'Aucun compte associé à cette adresse email.' });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    user.resetOtpHash = await bcrypt.hash(otp, 10);
+    user.resetOtpExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    const mailRes = await sendOtpEmail({ to: cleanEmail, fullName: user.fullName, otp });
+
+    res.json({
+      message: mailRes.sent
+        ? `Un code OTP a été envoyé à ${cleanEmail}.`
+        : `Code OTP généré pour ${cleanEmail} (SMTP non configuré sur le serveur — utilisez le code de test affiché).`,
+      ...(mailRes.demoMode ? { devOtp: otp } : {}),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Erreur lors de l’envoi du code OTP.' });
+  }
+});
+
+// POST /api/auth/reset-password - Verify OTP and update password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        message: 'Email, code OTP et nouveau mot de passe (min 6 caractères) requis.',
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail }).select('+resetOtpHash +resetOtpExpires');
+    if (!user || !user.resetOtpHash || !user.resetOtpExpires) {
+      return res.status(400).json({ message: 'Aucune demande OTP active pour cet email.' });
+    }
+
+    if (user.resetOtpExpires < new Date()) {
+      return res.status(400).json({ message: 'Ce code OTP a expiré. Demandez-en un nouveau.' });
+    }
+
+    const valid = await bcrypt.compare(String(otp).trim(), user.resetOtpHash);
+    if (!valid) {
+      return res.status(400).json({ message: 'Code OTP invalide.' });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    user.resetOtpHash = undefined;
+    user.resetOtpExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Mot de passe réinitialisé avec succès ! Vous pouvez vous connecter.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors de la réinitialisation du mot de passe.' });
   }
 });
 

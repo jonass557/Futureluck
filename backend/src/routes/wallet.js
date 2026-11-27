@@ -113,7 +113,7 @@ router.post('/deposit', protect, async (req, res) => {
 router.post('/withdraw', protect, async (req, res) => {
   try {
     const amount = Number(req.body.amount);
-    const { provider, phone, country, currency } = req.body;
+    const { provider, phone, accountName, country, currency } = req.body;
 
     if (!ALLOWED_PROVIDERS.includes(provider)) {
       return res.status(400).json({ message: 'Veuillez choisir un opérateur Mobile Money valide.' });
@@ -148,7 +148,7 @@ router.post('/withdraw', protect, async (req, res) => {
       currency: currency || 'XOF',
       reference: externalRef,
       status: 'pending',
-      note: `Retrait de gains vers ${provider}`,
+      note: `Retrait de gains vers ${provider}${accountName ? ` (${accountName})` : ''}`,
     });
 
     try {

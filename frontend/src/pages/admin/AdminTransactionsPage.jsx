@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Check, X } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Badge } from '@/components/ui/Card';
+import { Pagination } from '@/components/ui/Pagination';
 import { formatFCFA, formatShortDateFR } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -10,6 +11,8 @@ export default function AdminTransactionsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const load = () => {
     setLoading(true);
@@ -79,7 +82,7 @@ export default function AdminTransactionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {transactions.map((tx) => (
+                {transactions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((tx) => (
                   <tr key={tx._id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <p className="font-bold text-slate-900">{tx.user?.fullName}</p>
@@ -131,6 +134,13 @@ export default function AdminTransactionsPage() {
               </tbody>
             </table>
           )}
+          <div className="px-4 pb-4">
+            <Pagination
+              page={page}
+              totalPages={Math.max(1, Math.ceil(transactions.length / PAGE_SIZE))}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       </div>
     </AdminLayout>

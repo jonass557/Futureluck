@@ -13,6 +13,7 @@ import {
   Wallet,
   Menu,
   X,
+  History,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { FutureLuckLogo } from './FutureLuckLogo';
@@ -27,6 +28,7 @@ export function AdminLayout({ children, title }) {
     { to: '/admin', label: 'Statistiques', icon: LayoutDashboard },
     { to: '/admin/wallet', label: 'Portefeuille Admin', icon: Wallet },
     { to: '/admin/markets', label: 'Marchés & Gagnants', icon: Gavel },
+    { to: '/admin/history', label: 'Historique Marchés', icon: History },
     { to: '/admin/transactions', label: 'Dépôts & Retraits', icon: ArrowLeftRight },
     { to: '/admin/payments', label: 'Paramètres Ikeepay', icon: KeyRound },
     { to: '/admin/users', label: 'Utilisateurs', icon: Users },

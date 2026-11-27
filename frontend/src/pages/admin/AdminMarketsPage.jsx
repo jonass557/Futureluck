@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Trophy, Users, Sparkles, CheckCircle2, X, UserPlus, Award, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Trophy, Users, Sparkles, CheckCircle2, X, UserPlus, Award, Eye, Pencil, Trash2, Lock } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Card';
+import { Pagination } from '@/components/ui/Pagination';
 import { formatFCFA, formatDateFR } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -12,6 +13,8 @@ export default function AdminMarketsPage() {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 6;
 
   // Create / Edit form state
   const [editingMarketId, setEditingMarketId] = useState(null);
@@ -101,6 +104,17 @@ export default function AdminMarketsPage() {
       loadData();
     } catch (err) {
       alert(err.response?.data?.message || 'Erreur lors de la suppression.');
+    }
+  };
+
+  const handleCloseMarket = async (m) => {
+    if (!window.confirm(`Clôturer le marché "${m.title}" maintenant ?`)) return;
+    try {
+      await api.patch(`/admin/markets/${m._id}`, { status: 'closed' });
+      setFeedback(`Le marché "${m.title}" a été clôturé.`);
+      loadData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Erreur lors de la clôture.');
     }
   };
 
@@ -371,8 +385,9 @@ export default function AdminMarketsPage() {
         {loading ? (
           <div className="bg-white rounded-2xl p-8 text-center text-slate-500">Chargement...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {markets.map((m) => (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {markets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((m) => (
               <div key={m._id} className="bg-white rounded-2xl p-5 fl-card-shadow border border-slate-100 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -422,6 +437,16 @@ export default function AdminMarketsPage() {
                   >
                     <Pencil className="w-3.5 h-3.5" /> Modifier
                   </button>
+                  {m.status === 'open' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCloseMarket(m)}
+                      className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold cursor-pointer"
+                      title="Clôturer le marché"
+                    >
+                      <Lock className="w-3.5 h-3.5" /> Clôturer
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleDelete(m)}
@@ -433,7 +458,13 @@ export default function AdminMarketsPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+            <Pagination
+              page={page}
+              totalPages={Math.max(1, Math.ceil(markets.length / PAGE_SIZE))}
+              onPageChange={setPage}
+            />
+          </>
         )}
 
         {/* Participants & Winner Management Modal */}

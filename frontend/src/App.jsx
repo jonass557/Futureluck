@@ -4,6 +4,7 @@ import PublicHomePage from './pages/PublicHomePage';
 import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import MarketsPage from './pages/MarketsPage';
 import MarketDetailsPage from './pages/MarketDetailsPage';
@@ -18,6 +19,7 @@ import { HelpPage, AboutPage } from './pages/InfoPages';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
 import AdminWalletPage from './pages/admin/AdminWalletPage';
 import AdminMarketsPage from './pages/admin/AdminMarketsPage';
+import AdminHistoryPage from './pages/admin/AdminHistoryPage';
 import AdminTransactionsPage from './pages/admin/AdminTransactionsPage';
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
 import { AdminUsersPage, AdminLogsPage } from './pages/admin/AdminUsersLogs';
@@ -68,6 +70,7 @@ export default function App() {
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           <Route path="/" element={<HomeGate />} />
           <Route
@@ -189,6 +192,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <AdminMarketsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/history"
+            element={
+              <AdminRoute>
+                <AdminHistoryPage />
               </AdminRoute>
             }
           />

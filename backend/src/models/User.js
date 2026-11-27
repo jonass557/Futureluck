@@ -62,6 +62,26 @@ const userSchema = new mongoose.Schema(
     totalStaked: { type: Number, default: 0 },
     totalWon: { type: Number, default: 0 },
     totalWithdrawn: { type: Number, default: 0 },
+    withdrawalAccounts: {
+      MTN_MOMO: {
+        phone: { type: String, default: '' },
+        accountName: { type: String, default: '' },
+      },
+      ORANGE_MONEY: {
+        phone: { type: String, default: '' },
+        accountName: { type: String, default: '' },
+      },
+      WAVE: {
+        phone: { type: String, default: '' },
+        accountName: { type: String, default: '' },
+      },
+      MOOV: {
+        phone: { type: String, default: '' },
+        accountName: { type: String, default: '' },
+      },
+    },
+    resetOtpHash: { type: String, select: false },
+    resetOtpExpires: { type: Date, select: false },
     lastLoginAt: { type: Date },
   },
   { timestamps: true }
@@ -96,6 +116,7 @@ userSchema.methods.toSafeObject = function () {
     totalStaked: this.totalStaked,
     totalWon: this.totalWon,
     totalWithdrawn: this.totalWithdrawn,
+    withdrawalAccounts: this.withdrawalAccounts || {},
     createdAt: this.createdAt,
   };
 };

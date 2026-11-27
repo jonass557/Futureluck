@@ -45,7 +45,8 @@ export default function RegisterPage() {
       if (avatarFile) fd.append('avatar', avatarFile);
 
       await register(fd);
-      navigate(redirect);
+      const nextUrl = `/login?registered=1${redirect !== '/' ? `&redirect=${encodeURIComponent(redirect)}` : ''}`;
+      navigate(nextUrl);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la création du compte.');
     } finally {

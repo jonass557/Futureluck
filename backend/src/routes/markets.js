@@ -121,14 +121,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/markets/:id/participate - Stake from LuckyGamble wallet
+// POST /api/markets/:id/participate - Stake exact productPrice from LuckyGamble wallet
 router.post('/:id/participate', protect, async (req, res) => {
   try {
-    const amount = Number(req.body.amount);
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ message: 'Montant de participation invalide.' });
-    }
-
     const market = await Market.findById(req.params.id);
     if (!market) {
       return res.status(404).json({ message: 'Marché introuvable.' });
@@ -138,10 +133,10 @@ router.post('/:id/participate', protect, async (req, res) => {
       return res.status(400).json({ message: 'Ce marché n’est pas ouvert aux participations.' });
     }
 
-    if (amount < market.minStake || amount > market.maxStake) {
-      return res.status(400).json({
-        message: `Le montant doit être compris entre ${market.minStake.toLocaleString('fr-FR')} et ${market.maxStake.toLocaleString('fr-FR')} FCFA.`,
-      });
+    // Participation amount is fixed to the product price created by admin
+    const amount = market.productPrice || market.minStake || Number(req.body.amount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: 'Montant de participation invalide.' });
     }
 
     // Atomic balance deduction to prevent race conditions / double spending
