@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import SystemSetting from '../models/SystemSetting.js';
 import { protect } from '../middleware/auth.js';
 import { upload, uploadImage } from '../config/cloudinary.js';
 import { recordAudit } from '../utils/audit.js';
@@ -219,9 +220,28 @@ router.patch('/withdrawal-accounts', protect, async (req, res) => {
   }
 });
 
+// GET /api/auth/settings - Public auth settings (e.g. forgotPasswordEnabled)
+router.get('/settings', async (_req, res) => {
+  try {
+    const doc = await SystemSetting.findOne({ key: 'global' });
+    res.json({
+      forgotPasswordEnabled: doc ? doc.forgotPasswordEnabled : true,
+      withdrawalFeeRate: doc ? doc.withdrawalFeeRate : 8,
+    });
+  } catch {
+    res.json({ forgotPasswordEnabled: true, withdrawalFeeRate: 8 });
+  }
+});
+
 // POST /api/auth/forgot-password - Send 6-digit OTP to user's email
 router.post('/forgot-password', async (req, res) => {
   try {
+    const setting = await SystemSetting.findOne({ key: 'global' });
+    if (setting && setting.forgotPasswordEnabled === false) {
+      return res.status(403).json({
+        message: 'La réinitialisation du mot de passe est désactivée par l’administration.',
+      });
+    }
     const { email } = req.body;
     if (!email || !email.trim()) {
       return res.status(400).json({ message: 'Veuillez saisir votre adresse email.' });
@@ -254,6 +274,12 @@ router.post('/forgot-password', async (req, res) => {
 // POST /api/auth/reset-password - Verify OTP and update password
 router.post('/reset-password', async (req, res) => {
   try {
+    const setting = await SystemSetting.findOne({ key: 'global' });
+    if (setting && setting.forgotPasswordEnabled === false) {
+      return res.status(403).json({
+        message: 'La réinitialisation du mot de passe est désactivée par l’administration.',
+      });
+    }
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword || newPassword.length < 6) {
       return res.status(400).json({

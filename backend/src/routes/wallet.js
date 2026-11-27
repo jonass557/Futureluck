@@ -137,23 +137,27 @@ router.post('/withdraw', protect, async (req, res) => {
 
     const externalRef = generateReference('PAYOUT');
     const targetPhone = phone || updatedUser.phone;
+    const fee = Math.round(amount * 0.08); // 8% withdrawal fee
+    const netAmount = Math.max(0, amount - fee);
 
     const tx = await Transaction.create({
       user: updatedUser._id,
       type: 'withdrawal',
       amount,
+      fee,
+      netAmount,
       provider,
       phone: targetPhone,
       country: country || '',
       currency: currency || 'XOF',
       reference: externalRef,
       status: 'pending',
-      note: `Retrait de gains vers ${provider}${accountName ? ` (${accountName})` : ''}`,
+      note: `Retrait de gains vers ${provider}${accountName ? ` (${accountName})` : ''} • Frais 8%: ${fee.toLocaleString('fr-FR')} F • Net: ${netAmount.toLocaleString('fr-FR')} F`,
     });
 
     try {
       const ikp = await ikeepayPayout({
-        amount,
+        amount: netAmount,
         currency,
         country,
         phoneNumber: targetPhone,

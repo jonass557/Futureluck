@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Phone, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { getApiErrorMessage } from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { FutureLuckLogo } from '@/components/FutureLuckLogo';
 import { Button } from '@/components/ui/Button';
 
@@ -17,6 +17,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [slowNotice, setSlowNotice] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [forgotEnabled, setForgotEnabled] = useState(true);
+
+  useEffect(() => {
+    api
+      .get('/auth/settings')
+      .then((res) => setForgotEnabled(res.data.forgotPasswordEnabled !== false))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,9 +116,11 @@ export default function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-bold text-slate-700">
                   Mot de passe <span className="text-red-500">*</span>
                 </label>
-                <Link to="/forgot-password" className="text-xs font-bold text-[#0033B3] hover:underline">
-                  Mot de passe oublié ?
-                </Link>
+                {forgotEnabled && (
+                  <Link to="/forgot-password" className="text-xs font-bold text-[#0033B3] hover:underline">
+                    Mot de passe oublié ?
+                  </Link>
+                )}
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

@@ -1,21 +1,38 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Gavel, Coins, ArrowDownToLine, ArrowUpRight, Clock } from 'lucide-react';
+import { Users, Gavel, Coins, ArrowDownToLine, ArrowUpRight, Clock, KeyRound } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { formatFCFA } from '@/lib/utils';
 import api from '@/lib/api';
 
 export default function AdminOverviewPage() {
   const [stats, setStats] = useState(null);
+  const [forgotEnabled, setForgotEnabled] = useState(true);
+  const [togglingForgot, setTogglingForgot] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .get('/admin/stats')
-      .then((res) => setStats(res.data.stats))
+    Promise.all([api.get('/admin/stats'), api.get('/admin/settings')])
+      .then(([sRes, cfgRes]) => {
+        setStats(sRes.data.stats);
+        setForgotEnabled(cfgRes.data.settings?.forgotPasswordEnabled !== false);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const toggleForgotPassword = async () => {
+    setTogglingForgot(true);
+    try {
+      const nextVal = !forgotEnabled;
+      const { data } = await api.put('/admin/settings', { forgotPasswordEnabled: nextVal });
+      setForgotEnabled(Boolean(data.settings?.forgotPasswordEnabled));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Erreur lors de la mise à jour.');
+    } finally {
+      setTogglingForgot(false);
+    }
+  };
 
   const cards = stats
     ? [
@@ -84,6 +101,41 @@ export default function AdminOverviewPage() {
                 Créer des comptes utilisateurs et les ajouter comme participants ou gagnants.
               </p>
             </Link>
+          </div>
+
+          {/* Toggle Mot de passe oublié */}
+          <div className="bg-white rounded-2xl p-5 fl-card-shadow border border-slate-100 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#0033B3] flex items-center justify-center shrink-0">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-[#001B6B] text-sm sm:text-base">
+                  Option « Mot de passe oublié » sur la page de connexion
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {forgotEnabled
+                    ? 'Activée : les utilisateurs voient le bouton « Mot de passe oublié ? ».'
+                    : 'Désactivée : le bouton « Mot de passe oublié ? » est masqué aux utilisateurs.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={togglingForgot}
+              onClick={toggleForgotPassword}
+              className={`px-5 py-2.5 rounded-full text-xs font-extrabold cursor-pointer transition ${
+                forgotEnabled
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              {togglingForgot
+                ? 'Mise à jour...'
+                : forgotEnabled
+                ? 'Désactiver Mot de passe oublié'
+                : 'Activer Mot de passe oublié'}
+            </button>
           </div>
         </div>
       )}

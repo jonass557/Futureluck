@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, KeyRound, Lock, CheckCircle2 } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
@@ -15,6 +15,14 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    api
+      .get('/auth/settings')
+      .then((res) => setEnabled(res.data.forgotPasswordEnabled !== false))
+      .catch(() => {});
+  }, []);
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -99,7 +107,11 @@ export default function ForgotPasswordPage() {
             </div>
           )}
 
-          {step === 1 ? (
+          {!enabled ? (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-4 text-sm text-amber-900 font-bold">
+              La réinitialisation du mot de passe est actuellement désactivée par l’administration.
+            </div>
+          ) : step === 1 ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label htmlFor="fp-email" className="block text-sm font-bold text-slate-700 mb-1.5">

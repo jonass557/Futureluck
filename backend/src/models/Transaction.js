@@ -17,6 +17,14 @@ const transactionSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    fee: {
+      type: Number,
+      default: 0,
+    },
+    netAmount: {
+      type: Number,
+      default: 0,
+    },
     provider: {
       type: String,
       enum: ['MTN_MOMO', 'ORANGE_MONEY', 'WAVE', 'MOOV', 'WALLET'],

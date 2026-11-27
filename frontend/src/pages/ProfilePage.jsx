@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Camera, CheckCircle2, Star, Smartphone } from 'lucide-react';
+import { Camera, CheckCircle2, Star, Smartphone, Lock } from 'lucide-react';
 import { UserLayout } from '@/components/UserLayout';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
@@ -43,6 +43,13 @@ export default function ProfilePage() {
   });
   const [savingAccounts, setSavingAccounts] = useState(false);
   const [accFeedback, setAccFeedback] = useState('');
+
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPass, setSavingPass] = useState(false);
+  const [passFeedback, setPassFeedback] = useState({ type: '', text: '' });
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -92,6 +99,31 @@ export default function ProfilePage() {
       ...prev,
       [key]: { ...prev[key], [field]: value },
     }));
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPassFeedback({ type: '', text: '' });
+    if (newPassword.length < 6) {
+      setPassFeedback({ type: 'error', text: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPassFeedback({ type: 'error', text: 'Les nouveaux mots de passe ne correspondent pas.' });
+      return;
+    }
+    setSavingPass(true);
+    try {
+      const { data } = await api.patch('/auth/password', { currentPassword, newPassword });
+      setPassFeedback({ type: 'success', text: data.message });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPassFeedback({ type: 'error', text: getApiErrorMessage(err, 'Erreur lors du changement de mot de passe.') });
+    } finally {
+      setSavingPass(false);
+    }
   };
 
   return (
@@ -248,6 +280,75 @@ export default function ProfilePage() {
 
             <Button type="submit" variant="gold" size="lg" className="w-full" disabled={savingAccounts}>
               {savingAccounts ? 'Enregistrement...' : 'Enregistrer mes numéros de retrait'}
+            </Button>
+          </form>
+        </div>
+
+        {/* Change Password */}
+        <div className="bg-white rounded-3xl p-6 fl-card-shadow border border-slate-100 space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-[#0033B3]" />
+            <h3 className="text-lg font-extrabold text-[#001B6B]">Modifier mon mot de passe</h3>
+          </div>
+
+          {passFeedback.text && (
+            <div
+              role="alert"
+              className={`rounded-2xl px-4 py-3 text-sm font-bold flex items-center gap-2 ${
+                passFeedback.type === 'success'
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+              }`}
+            >
+              {passFeedback.type === 'success' && <CheckCircle2 className="w-5 h-5 shrink-0" />}
+              <span>{passFeedback.text}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="space-y-3">
+            <div>
+              <label htmlFor="cur-pass" className="block text-xs font-bold text-slate-700 mb-1">
+                Mot de passe actuel *
+              </label>
+              <input
+                id="cur-pass"
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full min-h-[46px] px-4 rounded-xl border border-slate-300"
+              />
+            </div>
+            <div>
+              <label htmlFor="new-pass" className="block text-xs font-bold text-slate-700 mb-1">
+                Nouveau mot de passe (min 6 caractères) *
+              </label>
+              <input
+                id="new-pass"
+                type="password"
+                minLength={6}
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full min-h-[46px] px-4 rounded-xl border border-slate-300"
+              />
+            </div>
+            <div>
+              <label htmlFor="conf-pass" className="block text-xs font-bold text-slate-700 mb-1">
+                Confirmer le nouveau mot de passe *
+              </label>
+              <input
+                id="conf-pass"
+                type="password"
+                minLength={6}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full min-h-[46px] px-4 rounded-xl border border-slate-300"
+              />
+            </div>
+            <Button type="submit" variant="primary" size="lg" className="w-full" disabled={savingPass}>
+              {savingPass ? 'Modification...' : 'Mettre à jour le mot de passe'}
             </Button>
           </form>
         </div>

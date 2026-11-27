@@ -7,6 +7,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import PaymentConfig from '../models/PaymentConfig.js';
+import SystemSetting from '../models/SystemSetting.js';
 import { protect, requireAdmin } from '../middleware/auth.js';
 import { upload, uploadImage } from '../config/cloudinary.js';
 import { generateReference, recordAudit } from '../utils/audit.js';
@@ -1077,6 +1078,51 @@ router.get('/history', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors du chargement de l’historique.' });
+  }
+});
+
+// GET /api/admin/settings
+router.get('/settings', async (_req, res) => {
+  try {
+    let doc = await SystemSetting.findOne({ key: 'global' });
+    if (!doc) {
+      doc = await SystemSetting.create({ key: 'global', forgotPasswordEnabled: true, withdrawalFeeRate: 8 });
+    }
+    res.json({ settings: doc });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors du chargement des paramètres.' });
+  }
+});
+
+// PUT /api/admin/settings - Toggle forgotPasswordEnabled etc.
+router.put('/settings', async (req, res) => {
+  try {
+    const { forgotPasswordEnabled } = req.body;
+    let doc = await SystemSetting.findOne({ key: 'global' });
+    if (!doc) {
+      doc = new SystemSetting({ key: 'global' });
+    }
+    if (forgotPasswordEnabled !== undefined) {
+      doc.forgotPasswordEnabled = Boolean(forgotPasswordEnabled);
+    }
+    doc.updatedBy = req.user._id;
+    await doc.save();
+
+    await recordAudit({
+      actor: req.user,
+      action: 'SYSTEM_SETTINGS_UPDATED',
+      targetType: 'SystemSetting',
+      targetId: doc._id,
+      details: `Mot de passe oublié ${doc.forgotPasswordEnabled ? 'activé' : 'désactivé'} par l’administration`,
+      ip: req.ip,
+    });
+
+    res.json({
+      message: `Option "Mot de passe oublié" ${doc.forgotPasswordEnabled ? 'activée' : 'désactivée'}.`,
+      settings: doc,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur lors de la mise à jour des paramètres.' });
   }
 });
 

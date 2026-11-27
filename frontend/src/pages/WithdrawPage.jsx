@@ -225,6 +225,22 @@ export default function WithdrawPage() {
               onChange={(e) => setAmount(e.target.value)}
               className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300 font-extrabold text-lg text-slate-900"
             />
+            {Number(amount) > 0 && (
+              <div className="mt-2 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs space-y-1">
+                <div className="flex justify-between text-slate-700">
+                  <span>Montant demandé :</span>
+                  <strong>{formatFCFA(Number(amount))}</strong>
+                </div>
+                <div className="flex justify-between text-red-600">
+                  <span>Frais de retrait (8%) :</span>
+                  <strong>- {formatFCFA(Math.round(Number(amount) * 0.08))}</strong>
+                </div>
+                <div className="flex justify-between text-emerald-700 font-extrabold border-t border-amber-200 pt-1 text-sm">
+                  <span>Montant net reçu :</span>
+                  <span>{formatFCFA(Math.max(0, Number(amount) - Math.round(Number(amount) * 0.08)))}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
