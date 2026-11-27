@@ -151,7 +151,7 @@ export function AdminUsersPage() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ex: Jean Momo"
+                  placeholder="Nom complet"
                   className="w-full min-h-[44px] px-3 rounded-xl border border-slate-300"
                 />
               </div>
@@ -162,7 +162,7 @@ export function AdminUsersPage() {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+237695008164"
+                  placeholder="+2250700000000"
                   className="w-full min-h-[44px] px-3 rounded-xl border border-slate-300"
                 />
               </div>

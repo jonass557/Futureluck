@@ -259,7 +259,7 @@ export default function RechargePage() {
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="2250700000000 ou 237695008164"
+              placeholder="Ex: 2250700000000"
               className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300 font-semibold text-slate-900"
             />
           </div>

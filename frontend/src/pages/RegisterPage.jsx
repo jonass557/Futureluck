@@ -109,7 +109,7 @@ export default function RegisterPage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ex : Kasmando"
+                placeholder="Votre nom complet"
                 className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300"
               />
             </div>
@@ -127,7 +127,7 @@ export default function RegisterPage() {
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+237 695008164"
+                placeholder="+225 0700000000"
                 className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300"
               />
             </div>

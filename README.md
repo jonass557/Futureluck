@@ -19,9 +19,8 @@ Vérifiez `backend/.env` :
 cd backend
 npm run seed
 ```
-Comptes créés par défaut :
+Compte créé par défaut :
 - **Admin** : `admin@futureluck.com` / `Admin@2026`
-- **Utilisateur (Kasmando)** : `+237695008164` / `User@2026`
 
 ### 3. Lancer le Backend et le Frontend
 ```bash

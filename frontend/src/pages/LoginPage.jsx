@@ -97,7 +97,7 @@ export default function LoginPage() {
                     setIdentifier(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder="+237 695008164 ou email"
+                  placeholder="Téléphone ou email"
                   className="w-full min-h-[48px] pl-10 pr-4 rounded-xl border border-slate-300 text-slate-900 placeholder:text-slate-400"
                 />
               </div>

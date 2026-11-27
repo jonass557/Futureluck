@@ -230,7 +230,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <input
                     type="tel"
-                    placeholder="Numéro (ex: 237695008164)"
+                    placeholder="Numéro Mobile Money"
                     value={accounts[p.key].phone}
                     onChange={(e) => updateAccount(p.key, 'phone', e.target.value)}
                     className="w-full min-h-[42px] px-3 rounded-xl border border-slate-300 bg-white text-sm"
