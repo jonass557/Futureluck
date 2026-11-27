@@ -1094,16 +1094,19 @@ router.get('/settings', async (_req, res) => {
   }
 });
 
-// PUT /api/admin/settings - Toggle forgotPasswordEnabled etc.
+// PUT /api/admin/settings - Toggle forgotPasswordEnabled, update termsAndConditions etc.
 router.put('/settings', async (req, res) => {
   try {
-    const { forgotPasswordEnabled } = req.body;
+    const { forgotPasswordEnabled, termsAndConditions } = req.body;
     let doc = await SystemSetting.findOne({ key: 'global' });
     if (!doc) {
       doc = new SystemSetting({ key: 'global' });
     }
     if (forgotPasswordEnabled !== undefined) {
       doc.forgotPasswordEnabled = Boolean(forgotPasswordEnabled);
+    }
+    if (termsAndConditions !== undefined) {
+      doc.termsAndConditions = String(termsAndConditions);
     }
     doc.updatedBy = req.user._id;
     await doc.save();
@@ -1113,12 +1116,12 @@ router.put('/settings', async (req, res) => {
       action: 'SYSTEM_SETTINGS_UPDATED',
       targetType: 'SystemSetting',
       targetId: doc._id,
-      details: `Mot de passe oublié ${doc.forgotPasswordEnabled ? 'activé' : 'désactivé'} par l’administration`,
+      details: `Paramètres mis à jour (Mot de passe oublié: ${doc.forgotPasswordEnabled ? 'activé' : 'désactivé'})`,
       ip: req.ip,
     });
 
     res.json({
-      message: `Option "Mot de passe oublié" ${doc.forgotPasswordEnabled ? 'activée' : 'désactivée'}.`,
+      message: 'Paramètres mis à jour avec succès !',
       settings: doc,
     });
   } catch (err) {

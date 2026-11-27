@@ -27,7 +27,7 @@ export async function applyIkeepayStatus(tx, providerStatus, providerRef = '') {
       await Notification.create({
         user: tx.user,
         title: 'Recharge confirmée !',
-        message: `Votre portefeuille LuckyGamble a été crédité de ${tx.amount.toLocaleString('fr-FR')} FCFA via Ikeepay.`,
+        message: `Votre portefeuille LuckyGamble a été crédité de ${tx.amount.toLocaleString('fr-FR')} FCFA via Mobile Money.`,
         type: 'deposit',
         link: '/wallet',
       });
@@ -59,7 +59,7 @@ export async function applyIkeepayStatus(tx, providerStatus, providerRef = '') {
     }
   } else if (providerStatus === 'failed') {
     tx.status = 'rejected';
-    tx.note = `${tx.note} (Échec Ikeepay)`;
+    tx.note = `${tx.note} (Échec paiement)`;
     tx.processedAt = new Date();
     await tx.save();
 

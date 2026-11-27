@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Gavel, Coins, ArrowDownToLine, ArrowUpRight, Clock, KeyRound } from 'lucide-react';
+import { Users, Gavel, Coins, ArrowDownToLine, ArrowUpRight, Clock, KeyRound, FileText, CheckCircle2 } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { Button } from '@/components/ui/Button';
 import { formatFCFA } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -9,6 +10,9 @@ export default function AdminOverviewPage() {
   const [stats, setStats] = useState(null);
   const [forgotEnabled, setForgotEnabled] = useState(true);
   const [togglingForgot, setTogglingForgot] = useState(false);
+  const [terms, setTerms] = useState('');
+  const [savingTerms, setSavingTerms] = useState(false);
+  const [termsFeedback, setTermsFeedback] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,10 +20,25 @@ export default function AdminOverviewPage() {
       .then(([sRes, cfgRes]) => {
         setStats(sRes.data.stats);
         setForgotEnabled(cfgRes.data.settings?.forgotPasswordEnabled !== false);
+        setTerms(cfgRes.data.settings?.termsAndConditions || '');
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSaveTerms = async (e) => {
+    e.preventDefault();
+    setSavingTerms(true);
+    setTermsFeedback('');
+    try {
+      const { data } = await api.put('/admin/settings', { termsAndConditions: terms });
+      setTermsFeedback(data.message);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Erreur lors de la sauvegarde.');
+    } finally {
+      setSavingTerms(false);
+    }
+  };
 
   const toggleForgotPassword = async () => {
     setTogglingForgot(true);
@@ -137,6 +156,46 @@ export default function AdminOverviewPage() {
                 : 'Activer Mot de passe oublié'}
             </button>
           </div>
+
+          {/* Éditeur Termes, Conditions & Politique de fonctionnement */}
+          <form
+            onSubmit={handleSaveTerms}
+            className="bg-white rounded-2xl p-5 fl-card-shadow border border-slate-100 space-y-3"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-[#001B6B] text-sm sm:text-base">
+                  Termes, conditions & politique de fonctionnement
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Ce texte est affiché aux utilisateurs lors de la création de leur compte (lecture et acceptation obligatoires).
+                </p>
+              </div>
+            </div>
+
+            {termsFeedback && (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2 text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0" /> {termsFeedback}
+              </div>
+            )}
+
+            <textarea
+              rows={6}
+              required
+              value={terms}
+              onChange={(e) => setTerms(e.target.value)}
+              placeholder="Saisissez les termes, conditions et politique de fonctionnement..."
+              className="w-full p-3.5 rounded-xl border border-slate-300 text-sm text-slate-800 leading-relaxed"
+            />
+            <div className="flex justify-end">
+              <Button type="submit" variant="primary" size="sm" disabled={savingTerms}>
+                {savingTerms ? 'Enregistrement...' : 'Enregistrer les termes & conditions'}
+              </Button>
+            </div>
+          </form>
         </div>
       )}
     </AdminLayout>

@@ -20,9 +20,14 @@ function signToken(user) {
 // POST /api/auth/register
 router.post('/register', upload.single('avatar'), async (req, res) => {
   try {
-    const { fullName, phone, email, password } = req.body;
+    const { fullName, phone, email, password, acceptedTerms } = req.body;
     if (!fullName || !phone || !password) {
       return res.status(400).json({ message: 'Nom complet, téléphone et mot de passe sont requis.' });
+    }
+    if (acceptedTerms !== true && acceptedTerms !== 'true') {
+      return res.status(400).json({
+        message: 'Veuillez lire et accepter les termes, conditions et la politique de fonctionnement.',
+      });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères.' });
@@ -220,16 +225,20 @@ router.patch('/withdrawal-accounts', protect, async (req, res) => {
   }
 });
 
-// GET /api/auth/settings - Public auth settings (e.g. forgotPasswordEnabled)
+// GET /api/auth/settings - Public auth settings (e.g. forgotPasswordEnabled, termsAndConditions)
 router.get('/settings', async (_req, res) => {
   try {
-    const doc = await SystemSetting.findOne({ key: 'global' });
+    let doc = await SystemSetting.findOne({ key: 'global' });
+    if (!doc) {
+      doc = await SystemSetting.create({ key: 'global' });
+    }
     res.json({
-      forgotPasswordEnabled: doc ? doc.forgotPasswordEnabled : true,
-      withdrawalFeeRate: doc ? doc.withdrawalFeeRate : 8,
+      forgotPasswordEnabled: doc.forgotPasswordEnabled,
+      withdrawalFeeRate: doc.withdrawalFeeRate,
+      termsAndConditions: doc.termsAndConditions,
     });
   } catch {
-    res.json({ forgotPasswordEnabled: true, withdrawalFeeRate: 8 });
+    res.json({ forgotPasswordEnabled: true, withdrawalFeeRate: 8, termsAndConditions: '' });
   }
 });
 

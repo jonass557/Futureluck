@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { FutureLuckLogo } from '@/components/FutureLuckLogo';
 import { Button } from '@/components/ui/Button';
 
@@ -16,8 +17,17 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState('');
+  const [terms, setTerms] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    api
+      .get('/auth/settings')
+      .then((res) => setTerms(res.data.termsAndConditions || ''))
+      .catch(() => {});
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -34,6 +44,10 @@ export default function RegisterPage() {
       setError('Le mot de passe doit contenir au moins 6 caractères.');
       return;
     }
+    if (!acceptedTerms) {
+      setError('Veuillez lire et accepter les termes, conditions et la politique de fonctionnement.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -42,13 +56,14 @@ export default function RegisterPage() {
       fd.append('phone', phone.trim());
       if (email.trim()) fd.append('email', email.trim());
       fd.append('password', password);
+      fd.append('acceptedTerms', 'true');
       if (avatarFile) fd.append('avatar', avatarFile);
 
       await register(fd);
       const nextUrl = `/login?registered=1${redirect !== '/' ? `&redirect=${encodeURIComponent(redirect)}` : ''}`;
       navigate(nextUrl);
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur lors de la création du compte.');
+      setError(getApiErrorMessage(err, 'Erreur lors de la création du compte.'));
     } finally {
       setSubmitting(false);
     }
@@ -166,6 +181,29 @@ export default function RegisterPage() {
                 placeholder="Minimum 6 caractères"
                 className="w-full min-h-[48px] px-4 rounded-xl border border-slate-300"
               />
+            </div>
+
+            {/* Termes, conditions et politique de fonctionnement */}
+            <div className="bg-[#EEF4FF] border border-blue-200 rounded-2xl p-3.5 space-y-2.5">
+              <p className="text-xs font-extrabold text-[#001B6B] flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-[#0033B3]" />
+                Termes, conditions & politique de fonctionnement
+              </p>
+              <div className="max-h-36 overflow-y-auto bg-white rounded-xl p-3 border border-slate-200 text-xs text-slate-700 whitespace-pre-line leading-relaxed">
+                {terms ||
+                  "1. FutureLuck est une plateforme de participation à des marchés.\n2. Les participations sont fermes.\n3. Les gagnants reçoivent leurs gains dans leur portefeuille retirable (frais de retrait : 8 %)."}
+              </div>
+              <label className="flex items-start gap-2.5 cursor-pointer pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 accent-[#0033B3] shrink-0"
+                />
+                <span className="text-xs font-bold text-slate-800">
+                  J’ai lu et j’accepte les termes, conditions et la politique de fonctionnement de FutureLuck.
+                </span>
+              </label>
             </div>
 
             <Button type="submit" variant="gold" size="lg" className="w-full mt-2 font-extrabold" disabled={submitting}>

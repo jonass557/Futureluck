@@ -45,7 +45,7 @@ async function ikeepayRequest(path, method = 'GET', body = null) {
   const res = await fetch(`${cfg.baseUrl}${path}`, options);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(data.message || `Erreur Ikeepay (${res.status})`);
+    const err = new Error(data.message || `Erreur passerelle Mobile Money (${res.status})`);
     err.status = res.status;
     err.details = data;
     throw err;

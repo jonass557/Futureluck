@@ -69,7 +69,7 @@ router.post('/deposit', protect, async (req, res) => {
       tx.status = 'rejected';
       tx.note = `${tx.note} (${ikpErr.message})`;
       await tx.save();
-      return res.status(400).json({ message: ikpErr.message || 'Échec de l’initiation du paiement Ikeepay.' });
+      return res.status(400).json({ message: ikpErr.message || 'Échec de l’initiation du paiement Mobile Money.' });
     }
 
     await Notification.create({
@@ -178,7 +178,7 @@ router.post('/withdraw', protect, async (req, res) => {
           await applyIkeepayStatus(tx, 'failed', providerRef);
           const refunded = await User.findById(updatedUser._id);
           return res.status(400).json({
-            message: 'Le retrait Ikeepay a échoué. Vos gains ont été recrédités.',
+            message: 'Le retrait Mobile Money a échoué. Vos gains ont été recrédités.',
             user: refunded?.toSafeObject(),
           });
         }
@@ -191,7 +191,7 @@ router.post('/withdraw', protect, async (req, res) => {
       await tx.save();
       const refunded = await User.findById(updatedUser._id);
       return res.status(400).json({
-        message: ikpErr.message || 'Erreur lors de l’envoi du retrait Ikeepay.',
+        message: ikpErr.message || 'Erreur lors de l’envoi du retrait Mobile Money.',
         user: refunded?.toSafeObject(),
       });
     }
