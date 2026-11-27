@@ -27,8 +27,11 @@ export default function DashboardPage() {
   const [winners, setWinners] = useState([]);
   const [participantsFeed, setParticipantsFeed] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
+  const loadDashboard = () => {
+    setLoading(true);
+    setLoadError('');
     refreshUser();
     Promise.all([
       api.get('/markets?status=open'),
@@ -40,8 +43,14 @@ export default function DashboardPage() {
         setWinners(wRes.data.winners || []);
         setParticipantsFeed(pRes.data.participants || []);
       })
-      .catch(() => {})
+      .catch(() => {
+        setLoadError('Connexion réseau lente ou instable. Impossible de charger les marchés.');
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDashboard();
   }, [refreshUser]);
 
   const latestWinner = winners[0] || null;
@@ -180,6 +189,17 @@ export default function DashboardPage() {
           {loading ? (
             <div className="bg-white rounded-3xl p-8 text-center text-slate-500 fl-card-shadow">
               Chargement des marchés...
+            </div>
+          ) : loadError ? (
+            <div className="bg-white rounded-3xl p-8 text-center space-y-3 fl-card-shadow border border-red-100">
+              <p className="text-sm font-bold text-red-600">{loadError}</p>
+              <button
+                type="button"
+                onClick={loadDashboard}
+                className="bg-[#0033B3] hover:bg-[#002799] text-white font-bold text-sm px-6 py-2.5 rounded-full cursor-pointer"
+              >
+                Réessayer
+              </button>
             </div>
           ) : markets.length === 0 ? (
             <div className="bg-white rounded-3xl p-8 text-center text-slate-500 fl-card-shadow">

@@ -1,12 +1,14 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL
+const configuredUrl = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : '/api';
+  : '';
+
+const baseURL = configuredUrl || '/api';
 
 const api = axios.create({
   baseURL,
-  timeout: 45000, // 45s timeout for weak networks and Render cold starts
+  timeout: 45000,
 });
 
 api.interceptors.request.use((config) => {
@@ -21,12 +23,24 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const config = err.config;
-    const isNetworkOrTimeout = !err.response || err.code === 'ECONNABORTED' || err.response?.status >= 502;
-    const isIdempotent = config && ['get', 'head'].includes((config.method || '').toLowerCase());
+    if (!config) return Promise.reject(err);
 
-    if (config && isNetworkOrTimeout && isIdempotent && (config._retryCount || 0) < 2) {
+    const isNetworkOrGatewayError =
+      !err.response || err.code === 'ECONNABORTED' || err.response?.status >= 502;
+
+    // 1) If direct VITE_API_URL failed at network/DNS/CORS level (e.g. Orange CM mobile network),
+    // automatically fallback to same-origin '/api' (Vercel Edge rewrite proxy -> Render).
+    if (isNetworkOrGatewayError && config.baseURL !== '/api' && !config._triedProxyFallback) {
+      config._triedProxyFallback = true;
+      config.baseURL = '/api';
+      return api(config);
+    }
+
+    // 2) Retry idempotent requests (GET/HEAD) up to 2 times on transient weak-network errors
+    const isIdempotent = ['get', 'head'].includes((config.method || '').toLowerCase());
+    if (isNetworkOrGatewayError && isIdempotent && (config._retryCount || 0) < 2) {
       config._retryCount = (config._retryCount || 0) + 1;
-      await new Promise((r) => setTimeout(r, 1500 * config._retryCount));
+      await new Promise((r) => setTimeout(r, 1200 * config._retryCount));
       return api(config);
     }
 
@@ -43,7 +57,7 @@ export function getApiErrorMessage(err, fallback = 'Une erreur est survenue.') {
     return 'La connexion au serveur est lente (délai dépassé). Veuillez réessayer.';
   }
   if (!err.response) {
-    return 'Connexion internet faible ou serveur en cours de démarrage. Patientez quelques secondes et réessayez.';
+    return 'Impossible de joindre le serveur sur ce réseau. Vérifiez votre connexion et réessayez.';
   }
   return fallback;
 }
